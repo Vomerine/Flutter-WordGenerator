@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:test_project/provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,16 +14,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Startup Name Generator',
-      theme: ThemeData(
-        // Navbar colors
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(
+          value: SavedWords(),
         ),
+      ],
+      child: MaterialApp(
+        title: 'Startup Name Generator',
+        theme: ThemeData(
+          // Navbar colors
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        home: const RandomWords(), // Calls the home_screen
       ),
-      home: const RandomWords(), // Calls the home_screen
     );
   }
 }

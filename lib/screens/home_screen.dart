@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
 import 'saved_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:test_project/provider.dart';
 
 // Creates the State, the function name to be called
 class RandomWords extends StatefulWidget {
@@ -13,11 +15,23 @@ class RandomWords extends StatefulWidget {
 // RandomWords function that holds the logic
 class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[]; // list of widget
-  final _saved = <WordPair>{}; // Set of saved words
+
   final _biggerFont = const TextStyle(fontSize: 18);
+
+  // Function for calling the provider for adding or removing an item
+  void changeSavedWords(BuildContext context, isSaved, item) {
+    // Check if the word is already saved
+    if (isSaved) {
+      Provider.of<SavedWords>(context, listen: false).remove(item);
+    } else {
+      Provider.of<SavedWords>(context, listen: false).add(item);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final saved = context.watch<SavedWords>().getSaves; // get saved words
+
     return Scaffold(
       // Scaffold is the 'page' of the screen
       appBar: AppBar(
@@ -29,7 +43,7 @@ class _RandomWordsState extends State<RandomWords> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () => pushSaved(context, _saved, _biggerFont),
+            onPressed: () => pushSaved(context, saved, _biggerFont),
             tooltip: 'Favorites', // For mouse hover
           ),
         ],
@@ -58,7 +72,7 @@ class _RandomWordsState extends State<RandomWords> {
           }
 
           // Check if the word is in the _saved Set.
-          final isSaved = _saved.contains(_suggestions[index]);
+          final isSaved = saved.contains(_suggestions[index]);
           //print(
           //   'Word: ${_suggestions[index].asPascalCase} isSaved: ${isSaved}');
 
@@ -70,16 +84,8 @@ class _RandomWordsState extends State<RandomWords> {
             trailing: IconButton(
               icon: Icon(isSaved ? Icons.favorite : Icons.favorite_border),
               color: isSaved ? Colors.red : null,
-              onPressed: () {
-                setState(() {
-                  //  triggers a call to the build()
-                  if (isSaved) {
-                    _saved.remove(_suggestions[index]);
-                  } else {
-                    _saved.add(_suggestions[index]);
-                  }
-                });
-              },
+              onPressed: () =>
+                  changeSavedWords(context, isSaved, _suggestions[index]),
             ),
           );
         },
