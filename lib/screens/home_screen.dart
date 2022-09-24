@@ -17,7 +17,7 @@ class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[]; // list of widget
 
   final _biggerFont = const TextStyle(fontSize: 18);
-
+  var _saved = <WordPair>{};
   // Function for calling the provider for adding or removing an item
   void changeSavedWords(BuildContext context, isSaved, item) {
     // Check if the word is already saved
@@ -28,12 +28,22 @@ class _RandomWordsState extends State<RandomWords> {
     }
   }
 
+  void func() async {
+    var query = await Provider.of<SavedWords>(context, listen: false)
+        .queryData; // Await on your future.
+
+    setState(() {
+      _saved = query;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final saved = context.watch<SavedWords>().getSaves; // get saved words
-
+    //final saved = context.watch<SavedWords>().getSaves; // get saved words
+    func();
     return Scaffold(
       // Scaffold is the 'page' of the screen
+
       appBar: AppBar(
         // AppBar is the 'Navbar' at the top
         title: const Text('Startup Name Generator'),
@@ -43,7 +53,7 @@ class _RandomWordsState extends State<RandomWords> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () => pushSaved(context, saved, _biggerFont),
+            onPressed: () => pushSaved(context, _saved, _biggerFont),
             tooltip: 'Favorites', // For mouse hover
           ),
         ],
@@ -72,7 +82,8 @@ class _RandomWordsState extends State<RandomWords> {
           }
 
           // Check if the word is in the _saved Set.
-          final isSaved = saved.contains(_suggestions[index]);
+          final isSaved = _saved.contains(_suggestions[index]);
+
           //print(
           //   'Word: ${_suggestions[index].asPascalCase} isSaved: ${isSaved}');
 
@@ -82,11 +93,12 @@ class _RandomWordsState extends State<RandomWords> {
               style: _biggerFont,
             ),
             trailing: IconButton(
-              icon: Icon(isSaved ? Icons.favorite : Icons.favorite_border),
-              color: isSaved ? Colors.red : null,
-              onPressed: () =>
-                  changeSavedWords(context, isSaved, _suggestions[index]),
-            ),
+                icon: Icon(isSaved ? Icons.favorite : Icons.favorite_border),
+                color: isSaved ? Colors.red : null,
+                onPressed: () => {
+                      changeSavedWords(context, isSaved, _suggestions[index]),
+                      func(),
+                    }),
           );
         },
       ),
