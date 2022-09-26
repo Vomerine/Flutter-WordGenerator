@@ -1,3 +1,4 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
 import 'saved_screen.dart';
@@ -15,32 +16,54 @@ class RandomWords extends StatefulWidget {
 // RandomWords function that holds the logic
 class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[]; // list of widget
-
+  final Map<String, dynamic> _map = {};
   final _biggerFont = const TextStyle(fontSize: 18);
-  var _saved = <WordPair>{};
+  final _saved = <WordPair>{};
+  var _lastId = 1;
+
   // Function for calling the provider for adding or removing an item
-  void changeSavedWords(BuildContext context, isSaved, item) {
+  void changeSavedWords(BuildContext context, isSaved, item, id) {
     // Check if the word is already saved
     if (isSaved) {
-      Provider.of<SavedWords>(context, listen: false).remove(item);
+      Provider.of<SavedWords>(context, listen: false).remove(item, id);
     } else {
-      Provider.of<SavedWords>(context, listen: false).add(item);
+      Provider.of<SavedWords>(context, listen: false).add(item, id);
     }
   }
 
-  void func() async {
-    var query = await Provider.of<SavedWords>(context, listen: false)
-        .queryData; // Await on your future.
+  void getSaves() async {
+    DataSnapshot snapshot =
+        await Provider.of<SavedWords>(context, listen: false)
+            .queryData; // Await on your future.
 
-    setState(() {
-      _saved = query;
-    });
+    // Loop through all the ids
+    for (final child in snapshot.children) {
+      Map<String, String> test = Map<String, String>.from(child.value as Map);
+
+      // Loop through the words and add them to a list
+      List<String> words = [];
+      test.forEach((key, value) {
+        words.add(value);
+      });
+
+      setState(() {
+        // Convert the word to a WordPair and add them to a list
+        _saved.add(WordPair(words[0], words[1]));
+
+        // Save the words as with their id as key-value pair
+        _map[child.key ?? '1'] = words[0] + words[1];
+
+        // Not efficient but this saves the last id
+        // so we can assign an id to the next word
+        _lastId = int.parse(child.key ?? '0');
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     //final saved = context.watch<SavedWords>().getSaves; // get saved words
-    func();
+    getSaves();
     return Scaffold(
       // Scaffold is the 'page' of the screen
 
@@ -81,11 +104,15 @@ class _RandomWordsState extends State<RandomWords> {
             _suggestions.addAll(generateWordPairs().take(10));
           }
 
-          // Check if the word is in the _saved Set.
-          final isSaved = _saved.contains(_suggestions[index]);
+          // Check if the word is in the database
+          // If not add 1 to id to set as the next word primary id.
+          var id = _map.keys.firstWhere(
+              (k) => _map[k] == _suggestions[index].toString(),
+              orElse: () => '${_lastId + 1}');
 
-          //print(
-          //   'Word: ${_suggestions[index].asPascalCase} isSaved: ${isSaved}');
+          // If id is less than or equal to lastId,
+          // the word is in the database
+          final isSaved = int.parse(id) <= _lastId;
 
           return ListTile(
             title: Text(
@@ -96,8 +123,9 @@ class _RandomWordsState extends State<RandomWords> {
                 icon: Icon(isSaved ? Icons.favorite : Icons.favorite_border),
                 color: isSaved ? Colors.red : null,
                 onPressed: () => {
-                      changeSavedWords(context, isSaved, _suggestions[index]),
-                      func(),
+                      changeSavedWords(
+                          context, isSaved, _suggestions[index], id),
+                      getSaves(),
                     }),
           );
         },

@@ -10,39 +10,21 @@ class SavedWords extends ChangeNotifier {
     return _saved;
   }
 
-  Future<Set<WordPair>> get queryData async {
-    final query = <WordPair>{};
-
+  Future<DataSnapshot> get queryData async {
     DataSnapshot snapshot = await _db.get();
 
-    // Loop through all the ids
-    for (final child in snapshot.children) {
-      Map<String, String> test = Map<String, String>.from(child.value as Map);
-
-      // Loop through the words and add them to a list
-      List<String> words = [];
-      test.forEach((key, value) {
-        words.add(value);
-      });
-
-      // Convert the word to a WordPair and add them to a list
-      query.add(WordPair(words[0], words[1]));
-    }
-
-    return query;
+    return snapshot;
   }
 
   // We're gonne use the notifyListeners()
   // to change the context.watch values
-  void add(item) {
-    _saved.add(item);
-
+  void add(item, id) {
     // Save to firebase with generated id
-    DatabaseReference newItem = _db.push();
+    DatabaseReference newItem = _db;
 
     // Words are saved separately so they
     // can be added later as a WordPair
-    newItem.set({
+    newItem.child(id).set({
       "firstWord": item.first,
       "secondWord": item.second,
     });
@@ -50,8 +32,13 @@ class SavedWords extends ChangeNotifier {
     notifyListeners();
   }
 
-  void remove(item) {
+  void remove(item, id) {
     _saved.remove(item);
+
+    // Remove the word from the database
+    DatabaseReference newItem = _db;
+    newItem.child('$id').remove();
+
     notifyListeners();
   }
 }
