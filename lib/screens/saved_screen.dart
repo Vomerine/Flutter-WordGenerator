@@ -1,43 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:test_project/provider.dart';
 
-void pushSaved(BuildContext context, saved, biggerFont) {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (context) {
-        // Make a map (foreach) and convert it to widget
-        // Maybe moving it to diff file cause it to
-        // forgot that it is a widget?
-        final tiles = saved.map<Widget>(
-          // Return a ListTile() foreach pair of saved words
-          (pair) {
-            return ListTile(
-              title: Text(
-                pair.asPascalCase,
-                style: biggerFont,
-              ),
-            );
-          },
-        );
-        final divided = tiles.isNotEmpty
-            // Print each tiles with a line divider
-            // with the .divideTiles() method
-            ? ListTile.divideTiles(
-                context: context,
-                tiles: tiles,
-              ).toList()
-            : <Widget>[];
+// ignore: must_be_immutable
+class SavedScreens extends StatefulWidget {
+  Map<dynamic, dynamic> map;
+  SavedScreens(this.map, {Key? key}) : super(key: key);
 
-        // Then the page is loaded
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Saved Suggestions'),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: divided,
-          ),
-        );
-      },
-    ),
-  );
+  //const SavedScreens({super.key});
+
+  @override
+  State<SavedScreens> createState() => _SavedScreensState();
+}
+
+class _SavedScreensState extends State<SavedScreens> {
+  void removeSavedWords(BuildContext context, id, item) {
+    Provider.of<SavedWords>(context, listen: false).remove(item, id);
+  }
+
+  void getSaves() async {
+    late Map<dynamic, dynamic> query = {};
+    query = await Provider.of<SavedWords>(context, listen: false)
+        .queryData; // Await on your query future.
+
+    // The if statement is required since
+    // the response from the server arrives
+    // after the widget is disposed when going back to first screen.
+    if (mounted) {
+      // setState to update the map and
+      // the screen after deleting an item
+      setState(() {
+        widget.map = query;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    getSaves();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Saved Suggestions'),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: widget.map.length,
+        itemBuilder: (context, i) {
+          var id = widget.map.keys.elementAt(i);
+          var item = widget.map[id];
+
+          return ListTile(
+            title: Text(
+              item,
+              style: const TextStyle(fontSize: 18),
+            ),
+            trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                color: null,
+                onPressed: () => {
+                      removeSavedWords(context, id, item),
+                      getSaves(),
+                    }),
+          );
+        },
+        separatorBuilder: (context, index) {
+          return const Divider();
+        },
+      ),
+    );
+  }
 }

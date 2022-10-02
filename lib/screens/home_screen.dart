@@ -1,4 +1,3 @@
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
 import 'saved_screen.dart';
@@ -16,9 +15,8 @@ class RandomWords extends StatefulWidget {
 // RandomWords function that holds the logic
 class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[]; // list of widget
-  final Map<String, dynamic> _map = {};
+  Map<dynamic, dynamic> _map = {};
   final _biggerFont = const TextStyle(fontSize: 18);
-  final _saved = <WordPair>{};
   var _lastId = 1;
 
   // Function for calling the provider for adding or removing an item
@@ -32,32 +30,13 @@ class _RandomWordsState extends State<RandomWords> {
   }
 
   void getSaves() async {
-    DataSnapshot snapshot =
-        await Provider.of<SavedWords>(context, listen: false)
-            .queryData; // Await on your future.
+    _map = await Provider.of<SavedWords>(context, listen: false)
+        .queryData; // Await on your future.
 
-    // Loop through all the ids
-    for (final child in snapshot.children) {
-      Map<String, String> test = Map<String, String>.from(child.value as Map);
-
-      // Loop through the words and add them to a list
-      List<String> words = [];
-      test.forEach((key, value) {
-        words.add(value);
-      });
-
-      setState(() {
-        // Convert the word to a WordPair and add them to a list
-        _saved.add(WordPair(words[0], words[1]));
-
-        // Save the words as with their id as key-value pair
-        _map[child.key ?? '1'] = words[0] + words[1];
-
-        // Not efficient but this saves the last id
-        // so we can assign an id to the next word
-        _lastId = int.parse(child.key ?? '0');
-      });
-    }
+    var len = _map.length;
+    setState(() {
+      _lastId = len == 0 ? len : int.parse(_map.keys.elementAt(len - 1));
+    });
   }
 
   @override
@@ -76,7 +55,12 @@ class _RandomWordsState extends State<RandomWords> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () => pushSaved(context, _saved, _biggerFont),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SavedScreens(_map)),
+              );
+            },
             tooltip: 'Favorites', // For mouse hover
           ),
         ],
